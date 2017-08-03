@@ -1,5 +1,5 @@
 # DrawPolygon
-ラスター画像をポリゴン化。GPL部分を分離しexe化したもの。別途対応ソフトのプラグインが必要（下記参照）
+ラスター画像をポリゴン化。GPL (CGAL)部分をMADrawPolygon.dllから分離、exe化したもの。別途対応ソフトのプラグインが必要（下記参照）
 
 ## 対応ソフト
  - Metasequoia4: https://github.com/devil-tamachan/MQDrawPolygon
