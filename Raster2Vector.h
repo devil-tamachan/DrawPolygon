@@ -3,44 +3,46 @@
 #define _TAMARASTER2VECTOR_
 
 #include "MyPolygon.h"
-#include "MQ3DLib.h"
+//#include "MQ3DLib.h"
 #include <Eigen/Dense>
 #include <math.h>
+#include "My3DStruct.h"
 
-Vector3 MQPointToVector3(MQPoint mp)
+Vector3 MyPointToVector3(MyPoint mp)
 {
   return Vector3(mp.x, mp.y, mp.z);
 }
-void MQPointToVector3(MQPoint *mpArr, Vector3 *vArr, int num)
+void MyPointToVector3(MyPoint *mpArr, Vector3 *vArr, int num)
 {
   for(int i=0;i<num;i++)
   {
-    MQPoint &mp = mpArr[i];
+    MyPoint &mp = mpArr[i];
     vArr[i] = Vector3(mp.x, mp.y, mp.z);
   }
 }
-MQPoint Vector3ToMQPoint(Vector3 v)
+MyPoint Vector3ToMyPoint(Vector3 v)
 {
   double x = CGAL::to_double(v.x());
   double y = CGAL::to_double(v.y());
   double z = CGAL::to_double(v.z());
-  return MQPoint(x, y, z);
+  return MyPoint(x, y, z);
 }
-MQPoint Point3ToMQPoint(Point3 p)
+MyPoint Point3ToMyPoint(Point3 p)
 {
   double x = CGAL::to_double(p.x());
   double y = CGAL::to_double(p.y());
   double z = CGAL::to_double(p.z());
-  return MQPoint(x, y, z);
+  return MyPoint(x, y, z);
 }
-Point2 MQPointToPoint2XY(MQPoint mp)
+/*
+Point2 MyPointToPoint2XY(MyPoint mp)
 {
   return Point2(mp.x, mp.y);
 }
-Point3 MQPointToPoint3(MQPoint mp)
+Point3 MyPointToPoint3(MyPoint mp)
 {
   return Point3(mp.x, mp.y, mp.z);
-}
+}*/
 
 double GetRatioStart2Pt(Point2 &start, Point2 &end, Point2 &pt)
 {
@@ -58,22 +60,22 @@ Point2 Point3_Point2XY(Point3 &p)
 {
   return Point2(p.x(), p.y());
 }
-MQPoint Point2_MQPoint(Point3 &pS, Point3 &pE, Point2 &pt)
+MyPoint Point2_MyPoint(Point3 &pS, Point3 &pE, Point2 &pt)
 {
   Point2 ptStart = Point3_Point2XY(pS);
   Point2 ptEnd   = Point3_Point2XY(pE);
   double ratioPt = GetRatioStart2Pt(ptStart, ptEnd, pt);
   double z = lerp(pS.z(), pE.z(), ratioPt);
-  return MQPoint(pt.x(), pt.y(), z);
+  return MyPoint(pt.x(), pt.y(), z);
 }
-MQPoint Point2_MQPoint(Point2 &pt, Eigen::Matrix<double, 1, 3> &matXYToZ)
+MyPoint Point2_MyPoint(Point2 &pt, Eigen::Matrix<double, 1, 3> &matXYToZ)
 {
   Eigen::Matrix<double, 3, 1> XY;
   XY << pt.x(),
         pt.y(),
         1.0;
   Eigen::Matrix<double, 1, 1> Z = matXYToZ * XY;
-  return MQPoint(pt.x(), pt.y(), Z(0,0));
+  return MyPoint(pt.x(), pt.y(), Z(0,0));
 }
 
 #define DEBUGCGALINTERSECT
@@ -99,13 +101,13 @@ private:
   CRaster2Vector() { }
   
 public:
-  CRaster2Vector(DrawPolygonDialog &dlg)
+  CRaster2Vector(DrawPolygonOptions &opt)
   {
-    opt_edgeproc = dlg.combo_edgeproc->GetCurrentIndex();
-    opt_vectorconv = dlg.combo_vectorconv->GetCurrentIndex();
-    opt_threshold = dlg.slider_threshold->GetPosition();
-    opt_np = dlg.spin_np->GetPosition();
-    opt_thresholdMennuki = dlg.slider_thresholdMennuki->GetPosition() * 255.0;
+    opt_edgeproc = opt.edgeproc;
+    opt_vectorconv = opt.vectorconv;
+    opt_threshold = opt.threshold;
+    opt_np = opt.np;
+    opt_thresholdMennuki = opt.thresholdMennuki * 255.0;
 #ifdef DEBUGCGALINTERSECT
     fp = fopen("c:\\tmp\\cgal.bin", "wb");
     bFirst = true;
@@ -119,7 +121,7 @@ public:
     chkFace.release();
   }
 
-  BOOL Raster2Vector(cv::Mat &mat)
+  bool Raster2Vector(cv::Mat &mat)
   {
     reset();
     
@@ -147,7 +149,7 @@ public:
         if(opt_edgeproc==3)chkFace = srcGray;
         else CheckFaceThreshold(254, chkFace, srcGray); //カラーだと色によって判定が異なってしまう。Texがモノクロだと逆にノイズの原因になっている
         ToPolygonMass(dstEdge, pointsMass);
-        if(pointsMass.size()==0)return FALSE;
+        if(pointsMass.size()==0)return false;
         Otr_2 otr2(pointsMass, point_pmap, mass_pmap, 15);
         otr2.set_random_sample_size(15);
 #ifdef MYOUTPUTDEBUG
@@ -164,7 +166,7 @@ sprintf(s, "%d\n", dbg);
       {
         CheckFaceThreshold(opt_threshold*255.0, chkFace, srcGray);
         ToPolygonThreshold(dstEdge, points);
-        if(points.size()==0)return FALSE;
+        if(points.size()==0)return false;
         Otr otr(points);
         otr.set_random_sample_size(15);
         otr.run_until(MIN(opt_np, points.size()));
@@ -172,10 +174,10 @@ sprintf(s, "%d\n", dbg);
       }
       break;
     default:
-      return FALSE;
+      return false;
     }
 
-    return TRUE;
+    return true;
   }
   
   void AddPoint(Vector3 &p)
@@ -217,7 +219,7 @@ sprintf(s, "%d\n", dbg);
     return iFound==4;
   }
   
-  void MakeTexRepeatList(std::vector<MQCoordinate> &coordTri, CacheTexInfo &info, std::vector<Point2> &retClip, std::vector<Point2> &retThru)
+  void MakeTexRepeatList(std::vector<MyCoordinate> &coordTri, CacheTexInfo &info, std::vector<Point2> &retClip, std::vector<Point2> &retThru)
   {
     float umin, umax, vmin, vmax;
     umin = vmin = FLT_MAX;
@@ -229,7 +231,7 @@ sprintf(s, "%d\n", dbg);
     vmaxTex = 1.0-(info.miny / info.h);
     for(int i=0;i<3;i++)
     {
-      MQCoordinate &c = coordTri[i];
+      MyCoordinate &c = coordTri[i];
       float u = c.u;
       float v = c.v;
       umin = MIN(u, umin);
@@ -268,7 +270,7 @@ sprintf(s, "%d\n", dbg);
         auto result = CGAL::intersection(uvRect, ClipTri);
         if(result)
         {
-          if(std::vector<Point2> *arrPt2 = boost::get<std::vector<Point2>>(&*result))
+          if(std::vector<Point2> *arrPt2 = boost::get<std::vector<Point2> >(&*result))
           {
             if(arrPt2->size()==4)
             {
@@ -285,7 +287,7 @@ sprintf(s, "%d\n", dbg);
     }
   }
   
-  MQCoordinate CalcNewUV(MQPoint &newMqp, Eigen::Matrix<double, 2, 4> &matPtToUV)
+  MyCoordinate CalcNewUV(MyPoint &newMqp, Eigen::Matrix<double, 2, 4> &matPtToUV)
   {
     Eigen::Matrix<double, 4, 1> matNewMqp;
     matNewMqp << newMqp.x,
@@ -293,13 +295,13 @@ sprintf(s, "%d\n", dbg);
                  newMqp.z,
                  1.0;
     Eigen::Matrix<double, 2, 1> uv = matPtToUV * matNewMqp;
-    return MQCoordinate(uv(0,0), uv(1,0));
+    return MyCoordinate(uv(0,0), uv(1,0));
   }
   /*
-  Eigen::Matrix<double, 3, 4> __GetAffineTri2UV(std::vector<MQPoint> &pts, std::vector<MQCoordinate> &coord)
+  Eigen::Matrix<double, 3, 4> __GetAffineTri2UV(std::vector<MyPoint> &pts, std::vector<MyCoordinate> &coord)
   {
-    MQPoint p0 = pts[0], p1 = pts[1], p2 = pts[2];
-    MQCoordinate c0 = coord[0], c1 = coord[1], c2 = coord[2];
+    MyPoint p0 = pts[0], p1 = pts[1], p2 = pts[2];
+    MyCoordinate c0 = coord[0], c1 = coord[1], c2 = coord[2];
     Eigen::Matrix<double, 9, 12> A;
     A << 
          p0.x, p0.y, p0.z, 1.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,  0.0,
@@ -327,10 +329,10 @@ sprintf(s, "%d\n", dbg);
     return M;
   }*/
   
-  Eigen::Matrix<double, 2, 4> __GetAffineTri2UV(std::vector<MQPoint> &pts, std::vector<MQCoordinate> &coord)
+  Eigen::Matrix<double, 2, 4> __GetAffineTri2UV(std::vector<MyPoint> &pts, std::vector<MyCoordinate> &coord)
   {
-    MQPoint p0 = pts[0], p1 = pts[1], p2 = pts[2];
-    MQCoordinate c0 = coord[0], c1 = coord[1], c2 = coord[2];
+    MyPoint p0 = pts[0], p1 = pts[1], p2 = pts[2];
+    MyCoordinate c0 = coord[0], c1 = coord[1], c2 = coord[2];
     Eigen::Matrix<double, 6, 8> A;
     A << 
          p0.x, p0.y, p0.z, 1.0,  0.0,  0.0,  0.0,  0.0,
@@ -348,15 +350,15 @@ sprintf(s, "%d\n", dbg);
          c2.u,
          c2.v;
     Eigen::Matrix<double, 8, 1> X = A.fullPivLu().solve(B);
-    Eigen::Matrix<double, 2, 4> M = Eigen::Map<Eigen::Matrix<double, 2, 4, Eigen::RowMajor>>(X.data());
+    Eigen::Matrix<double, 2, 4> M = Eigen::Map<Eigen::Matrix<double, 2, 4, Eigen::RowMajor> >(X.data());
     return M;
   }
   
   //入力ベクトルZが潰れるので注意。すべての入力Zが0だろうがなんだろうが0扱いになる。
-  Eigen::Matrix<double, 3, 4> __GetAffineUV2Tri(std::vector<MQCoordinate> &coord, std::vector<MQPoint> &pts)
+  Eigen::Matrix<double, 3, 4> __GetAffineUV2Tri(std::vector<MyCoordinate> &coord, std::vector<MyPoint> &pts)
   {
-    MQPoint p0 = pts[0], p1 = pts[1], p2 = pts[2];
-    MQCoordinate c0 = coord[0], c1 = coord[1], c2 = coord[2];
+    MyPoint p0 = pts[0], p1 = pts[1], p2 = pts[2];
+    MyCoordinate c0 = coord[0], c1 = coord[1], c2 = coord[2];
     Eigen::Matrix<double, 9, 12> A;
     A << 
          c0.u, c0.v, 0.0, 1.0,  0.0,  0.0,  0.0, 0.0,  0.0,  0.0,  0.0, 0.0,
@@ -380,13 +382,13 @@ sprintf(s, "%d\n", dbg);
          p2.y,
          p2.z;
     Eigen::Matrix<double, 12, 1> X = A.fullPivLu().solve(B);
-    Eigen::Matrix<double, 3, 4> M = Eigen::Map<Eigen::Matrix<double, 3, 4, Eigen::RowMajor>>(X.data());
+    Eigen::Matrix<double, 3, 4> M = Eigen::Map<Eigen::Matrix<double, 3, 4, Eigen::RowMajor> >(X.data());
     return M;
   }
-  Eigen::Matrix<double, 3, 4> __GetAffine34UV2Tri_NoScaleZ(std::vector<MQCoordinate> &coord, std::vector<MQPoint> &pts)
+  Eigen::Matrix<double, 3, 4> __GetAffine34UV2Tri_NoScaleZ(std::vector<MyCoordinate> &coord, std::vector<MyPoint> &pts)
   {
-    MQPoint p0 = pts[0], p1 = pts[1], p2 = pts[2];
-    MQCoordinate c0 = coord[0], c1 = coord[1], c2 = coord[2];
+    MyPoint p0 = pts[0], p1 = pts[1], p2 = pts[2];
+    MyCoordinate c0 = coord[0], c1 = coord[1], c2 = coord[2];
     Eigen::Matrix<double, 12, 12> A;
     A << 
          c0.u, c0.v, 0.0, 1.0,  0.0,  0.0,  0.0, 0.0,  0.0,  0.0,  0.0, 0.0,
@@ -403,7 +405,7 @@ sprintf(s, "%d\n", dbg);
          0.0,  0.0,  0.0,     0.0,  c1.u, c1.v, 10000.0, 1.0,  0.0,  0.0,  0.0,     0.0,
          0.0,  0.0,  0.0,     0.0,  0.0,  0.0,  0.0,     0.0,  c1.u, c1.v, 10000.0, 1.0;
     
-    MQPoint p3 = Normalize(GetCrossProduct(p0-p1, p2-p1))*10000.0 + p1;
+    MyPoint p3 = Normalize(CrossProduct(p0-p1, p2-p1))*10000.0 + p1;
     Eigen::Matrix<double, 12, 1> B;
     B << 
          p0.x,
@@ -419,20 +421,20 @@ sprintf(s, "%d\n", dbg);
          p3.y,
          p3.z;
     Eigen::Matrix<double, 12, 1> X = A.fullPivLu().solve(B);
-    Eigen::Matrix<double, 3, 4> M = Eigen::Map<Eigen::Matrix<double, 3, 4, Eigen::RowMajor>>(X.data());
+    Eigen::Matrix<double, 3, 4> M = Eigen::Map<Eigen::Matrix<double, 3, 4, Eigen::RowMajor> >(X.data());
     return M;
   }
-  Eigen::Matrix<double, 4, 4> __GetAffine44UV2Tri_NoScaleZ(std::vector<MQCoordinate> &coord, std::vector<MQPoint> &pts)
+  Eigen::Matrix<double, 4, 4> __GetAffine44UV2Tri_NoScaleZ(std::vector<MyCoordinate> &coord, std::vector<MyPoint> &pts)
   {
     Eigen::MatrixXd M = __GetAffine34UV2Tri_NoScaleZ(coord, pts);
     M.conservativeResize(4,4);
     M(3,3) = 1.0;
     return M;
   }
-  Eigen::Matrix<double, 3, 4> __GetAffine34UV2Tri_ScaleZ(std::vector<MQCoordinate> &coord, std::vector<MQPoint> &pts, double scaleZ)
+  Eigen::Matrix<double, 3, 4> __GetAffine34UV2Tri_ScaleZ(std::vector<MyCoordinate> &coord, std::vector<MyPoint> &pts, double scaleZ)
   {
-    MQPoint p0 = pts[0], p1 = pts[1], p2 = pts[2];
-    MQCoordinate c0 = coord[0], c1 = coord[1], c2 = coord[2];
+    MyPoint p0 = pts[0], p1 = pts[1], p2 = pts[2];
+    MyCoordinate c0 = coord[0], c1 = coord[1], c2 = coord[2];
     Eigen::Matrix<double, 12, 12> A;
     A << 
          c0.u, c0.v, 0.0, 1.0,  0.0,  0.0,  0.0, 0.0,  0.0,  0.0,  0.0, 0.0,
@@ -449,7 +451,7 @@ sprintf(s, "%d\n", dbg);
          0.0,  0.0,  0.0,     0.0,  c1.u, c1.v, 10000.0, 1.0,  0.0,  0.0,  0.0,     0.0,
          0.0,  0.0,  0.0,     0.0,  0.0,  0.0,  0.0,     0.0,  c1.u, c1.v, 10000.0, 1.0;
     
-    MQPoint p3 = Normalize(GetCrossProduct(p0-p1, p2-p1))*(10000.0*scaleZ) + p1;
+    MyPoint p3 = Normalize(CrossProduct(p0-p1, p2-p1))*(10000.0*scaleZ) + p1;
     Eigen::Matrix<double, 12, 1> B;
     B << 
          p0.x,
@@ -465,10 +467,10 @@ sprintf(s, "%d\n", dbg);
          p3.y,
          p3.z;
     Eigen::Matrix<double, 12, 1> X = A.fullPivLu().solve(B);
-    Eigen::Matrix<double, 3, 4> M = Eigen::Map<Eigen::Matrix<double, 3, 4, Eigen::RowMajor>>(X.data());
+    Eigen::Matrix<double, 3, 4> M = Eigen::Map<Eigen::Matrix<double, 3, 4, Eigen::RowMajor> >(X.data());
     return M;
   }
-  Eigen::Matrix<double, 4, 4> __GetAffine44UV2Tri_ScaleZ(std::vector<MQCoordinate> &coord, std::vector<MQPoint> &pts, double scaleZ)
+  Eigen::Matrix<double, 4, 4> __GetAffine44UV2Tri_ScaleZ(std::vector<MyCoordinate> &coord, std::vector<MyPoint> &pts, double scaleZ)
   {
     Eigen::MatrixXd M = __GetAffine34UV2Tri_ScaleZ(coord, pts, scaleZ);
     M.conservativeResize(4,4);
@@ -478,9 +480,9 @@ sprintf(s, "%d\n", dbg);
 
   
   // XYが一緒だとZが潰れるので注意
-  Eigen::Matrix<double, 1, 3> __GetAffineXY2Z(std::vector<MQPoint> &pts)
+  Eigen::Matrix<double, 1, 3> __GetAffineXY2Z(std::vector<MyPoint> &pts)
   {
-    MQPoint p0 = pts[0], p1 = pts[1], p2 = pts[2];
+    MyPoint p0 = pts[0], p1 = pts[1], p2 = pts[2];
     Eigen::Matrix<double, 3, 3> A;
     A << 
          p0.x, p0.y, 1.0,
@@ -492,20 +494,20 @@ sprintf(s, "%d\n", dbg);
          p1.z,
          p2.z;
     Eigen::Matrix<double, 3, 1> X = A.fullPivLu().solve(B);
-    Eigen::Matrix<double, 1, 3> M = Eigen::Map<Eigen::Matrix<double, 1, 3, Eigen::RowMajor>>(X.data());
+    Eigen::Matrix<double, 1, 3> M = Eigen::Map<Eigen::Matrix<double, 1, 3, Eigen::RowMajor> >(X.data());
     return M;
   }
   
-  void ShiftTri(std::vector<MQPoint> &tri, Point2 &shift, std::vector<MQPoint> &shiftTri)
+  void ShiftTri(std::vector<MyPoint> &tri, Point2 &shift, std::vector<MyPoint> &shiftTri)
   {
     for(int i=0;i<3;i++)
     {
-      MQPoint &p = tri[i];
-      shiftTri.push_back(MQPoint(p.x+shift.x(), p.y+shift.y(), p.z));
+      MyPoint &p = tri[i];
+      shiftTri.push_back(MyPoint(p.x+shift.x(), p.y+shift.y(), p.z));
     }
   }
   /*
-  void OutputDebugTri(std::vector<MQPoint> &tri)
+  void OutputDebugTri(std::vector<MyPoint> &tri)
   {
     char buf[1025];
     sprintf(buf, "Tri = ");
@@ -513,14 +515,14 @@ sprintf(s, "%d\n", dbg);
     for(int i=0;i<3;i++)
     {
       if(i!=0)sprintf(buf, ", ");
-      MQPoint p = tri[i];
+      MyPoint p = tri[i];
       sprintf(buf, "(%f,%f)", p.x, p.y);
       OutputDebugStringA(buf);
     }
     OutputDebugStringA("\n");
   }*/
   
-  bool __SegmentTriangleIntersect25(Triangle2 &ClipTri, std::vector<MQPoint> &tri, std::vector<MQCoordinate> &coord, std::vector<MQPoint> &ret, std::vector<MQCoordinate> &retCoord)
+  bool __SegmentTriangleIntersect25(Triangle2 &ClipTri, std::vector<MyPoint> &tri, std::vector<MyCoordinate> &coord, std::vector<MyPoint> &ret, std::vector<MyCoordinate> &retCoord)
   {
         // p0(p1) ------ p2
     Point2 p01 = Point2(tri[0].x, tri[0].y);
@@ -541,9 +543,9 @@ sprintf(s, "%d\n", dbg);
         bool bIn01 = CGAL::do_intersect(ClipTri, p01);
         bool bIn2  = CGAL::do_intersect(ClipTri, p2);
         
-        MQPoint newMqp = Point2_MQPoint(q0, q2, s2s);
+        MyPoint newMqp = Point2_MyPoint(q0, q2, s2s);
         ret.push_back(newMqp);
-        MQCoordinate newCoord = CalcNewUV(newMqp, matPtToUV);
+        MyCoordinate newCoord = CalcNewUV(newMqp, matPtToUV);
         retCoord.push_back(newCoord);
         
         if(CGAL::do_intersect(ClipTri, p2))
@@ -551,20 +553,20 @@ sprintf(s, "%d\n", dbg);
           ret.push_back(tri[2]);
           retCoord.push_back(coord[2]);
         } else {
-          MQPoint newMqp2 = Point2_MQPoint(q0, q2, s2t);
+          MyPoint newMqp2 = Point2_MyPoint(q0, q2, s2t);
           ret.push_back(newMqp2);
-          MQCoordinate newCoord2 = CalcNewUV(newMqp2, matPtToUV);
+          MyCoordinate newCoord2 = CalcNewUV(newMqp2, matPtToUV);
           retCoord.push_back(newCoord2);
           
-          MQPoint newMqp3 = Point2_MQPoint(q1, q2, s2t);
+          MyPoint newMqp3 = Point2_MyPoint(q1, q2, s2t);
           ret.push_back(newMqp3);
-          MQCoordinate newCoord3 = CalcNewUV(newMqp3, matPtToUV);
+          MyCoordinate newCoord3 = CalcNewUV(newMqp3, matPtToUV);
           retCoord.push_back(newCoord3);
         }
         
-        MQPoint newMqp4 = Point2_MQPoint(q1, q2, s2s);
+        MyPoint newMqp4 = Point2_MyPoint(q1, q2, s2s);
         ret.push_back(newMqp4);
-        MQCoordinate newCoord4 = CalcNewUV(newMqp4, matPtToUV);
+        MyCoordinate newCoord4 = CalcNewUV(newMqp4, matPtToUV);
         retCoord.push_back(newCoord4);
         return true;
       }
@@ -572,7 +574,7 @@ sprintf(s, "%d\n", dbg);
     return false;
   }
   
-  bool _TriangleTriangleZeroAreaIntersect25(Triangle2 &ClipTri, std::vector<MQPoint> &tri, std::vector<MQCoordinate> &coord, std::vector<MQPoint> &ret, std::vector<MQCoordinate> &retCoord)
+  bool _TriangleTriangleZeroAreaIntersect25(Triangle2 &ClipTri, std::vector<MyPoint> &tri, std::vector<MyCoordinate> &coord, std::vector<MyPoint> &ret, std::vector<MyCoordinate> &retCoord)
   {
     bool bEq01 = tri[0].x==tri[1].x && tri[0].y==tri[1].y;
     bool bEq12 = tri[1].x==tri[2].x && tri[1].y==tri[2].y;
@@ -591,8 +593,8 @@ sprintf(s, "%d\n", dbg);
     if(bEq01 && !bEq12 && !bEq02)
     {
       // p0(p1) ------ p2
-      std::vector<MQPoint> tri2;
-      std::vector<MQCoordinate> coord2;
+      std::vector<MyPoint> tri2;
+      std::vector<MyCoordinate> coord2;
       int idxShuffle[] = {1, 0, 2};
       for(int i=0;i<3;i++)
       {
@@ -603,8 +605,8 @@ sprintf(s, "%d\n", dbg);
       return __SegmentTriangleIntersect25(ClipTri, tri2, coord2, ret, retCoord);
     } else if(!bEq01 && bEq12 && !bEq02) {
       // p1(p2) ------ p0
-      std::vector<MQPoint> tri2;
-      std::vector<MQCoordinate> coord2;
+      std::vector<MyPoint> tri2;
+      std::vector<MyCoordinate> coord2;
       int idxShuffle[] = {2, 1, 0};
       for(int i=0;i<3;i++)
       {
@@ -616,8 +618,8 @@ sprintf(s, "%d\n", dbg);
       
     } else if(!bEq01 && !bEq12 && bEq02) {
       // p0(p2) ------ p1
-      std::vector<MQPoint> tri2;
-      std::vector<MQCoordinate> coord2;
+      std::vector<MyPoint> tri2;
+      std::vector<MyCoordinate> coord2;
       int idxShuffle[] = {0, 2, 1};
       for(int i=0;i<3;i++)
       {
@@ -632,7 +634,7 @@ sprintf(s, "%d\n", dbg);
     }
   }
   
-  bool TriangleTriangleIntersect25(Triangle2 &ClipTri, std::vector<MQPoint> &tri, std::vector<MQCoordinate> &coord, std::vector<MQPoint> &ret, std::vector<MQCoordinate> &retCoord)
+  bool TriangleTriangleIntersect25(Triangle2 &ClipTri, std::vector<MyPoint> &tri, std::vector<MyCoordinate> &coord, std::vector<MyPoint> &ret, std::vector<MyCoordinate> &retCoord)
   {
     Triangle2 Tri2 = _MakeClipTri(tri);
     //if(ClipTri.area()==0.0)return false; OutputToMetaseqFast_LineTriに移動
@@ -652,13 +654,13 @@ sprintf(s, "%d\n", dbg);
         for(int i=0;i<3;i++)
         {
           Point2 p = (*tri3)[i];
-          MQPoint newMqp = Point2_MQPoint(p, matXYToZ);
+          MyPoint newMqp = Point2_MyPoint(p, matXYToZ);
           ret.push_back(newMqp);
-          MQCoordinate newCoord = CalcNewUV(newMqp, matPtToUV);
+          MyCoordinate newCoord = CalcNewUV(newMqp, matPtToUV);
           retCoord.push_back(newCoord);
         }
         return true;
-      } else if(std::vector<Point2> *p2 = boost::get<std::vector<Point2>>(&*result))
+      } else if(std::vector<Point2> *p2 = boost::get<std::vector<Point2> >(&*result))
       {
         Eigen::Matrix<double, 2, 4> matPtToUV = __GetAffineTri2UV(tri, coord);
         Eigen::Matrix<double, 1, 3> matXYToZ = __GetAffineXY2Z(tri);
@@ -666,9 +668,9 @@ sprintf(s, "%d\n", dbg);
         int numP2 = p2->size();
         for(int i=0;i<numP2;i++)
         {
-          MQPoint newMqp = Point2_MQPoint((*p2)[i], matXYToZ);
+          MyPoint newMqp = Point2_MyPoint((*p2)[i], matXYToZ);
           ret.push_back(newMqp);
-          MQCoordinate newCoord = CalcNewUV(newMqp, matPtToUV);
+          MyCoordinate newCoord = CalcNewUV(newMqp, matPtToUV);
           retCoord.push_back(newCoord);
         }
         return true;
@@ -678,7 +680,7 @@ sprintf(s, "%d\n", dbg);
   }
   
   /*バグあり: クリップ範囲内(ClipTri内)にtriの角が１～２入っているとそこが抜けておかしくなる
-  bool TriangleTriangleIntersect2_5(Triangle2 &ClipTri, std::vector<MQPoint> &tri, std::vector<MQCoordinate> &coord, std::vector<MQPoint> &ret, std::vector<MQCoordinate> &retCoord)
+  bool TriangleTriangleIntersect2_5(Triangle2 &ClipTri, std::vector<MyPoint> &tri, std::vector<MyCoordinate> &coord, std::vector<MyPoint> &ret, std::vector<MyCoordinate> &retCoord)
   {
     Point2 pt2[3];
     Segment2 seg2[3];
@@ -686,7 +688,7 @@ sprintf(s, "%d\n", dbg);
     //OutputDebugTri(tri);
     for(int i=0;i<3;i++)
     {
-      pt2[i] = MQPointToPoint2XY(tri[i]);
+      pt2[i] = MyPointToPoint2XY(tri[i]);
       PtIsIn[i] = ClipTri.bounded_side(pt2[i]);
       Point2 &pt2Next = i+1>=3 ? pt2[0] : pt2[i+1];
       seg2[i] = Segment2(pt2[i], pt2Next);
@@ -700,7 +702,7 @@ sprintf(s, "%d\n", dbg);
     {
       for(int i=0;i<3;i++)
       {
-        MQPoint &mqp = tri[i];
+        MyPoint &mqp = tri[i];
         ret.push_back(mqp);
         retCoord.push_back(coord[i]);
       }
@@ -721,21 +723,21 @@ sprintf(s, "%d\n", dbg);
       {
         if(Segment2 *s2 = boost::get<Segment2>(&*result))
         {
-          Point3 ptI = MQPointToPoint3(tri[i]);
-          Point3 ptK = MQPointToPoint3(tri[k]);
+          Point3 ptI = MyPointToPoint3(tri[i]);
+          Point3 ptK = MyPointToPoint3(tri[k]);
           Eigen::Matrix<double, 2, 4> matPtToUV = __GetAffineTri2UV(tri, coord);
           if(PtIsIn[i]==CGAL::ON_UNBOUNDED_SIDE)
           {
             Point2 s2s = s2->source();
-            MQPoint newMqp = Point2_MQPoint(ptI, ptK, s2s);
+            MyPoint newMqp = Point2_MyPoint(ptI, ptK, s2s);
             ret.push_back(newMqp);
-            MQCoordinate newCoord = CalcNewUV(newMqp, matPtToUV);
+            MyCoordinate newCoord = CalcNewUV(newMqp, matPtToUV);
             retCoord.push_back(newCoord);
           }
           Point2 s2t = s2->target();
-          MQPoint newMqp = Point2_MQPoint(ptI, ptK, s2t);
+          MyPoint newMqp = Point2_MyPoint(ptI, ptK, s2t);
           ret.push_back(newMqp);
-          MQCoordinate newCoord = CalcNewUV(newMqp, matPtToUV);
+          MyCoordinate newCoord = CalcNewUV(newMqp, matPtToUV);
           retCoord.push_back(newCoord);
           continue;
         } else if(Point2 *p2 = boost::get<Point2>(&*result))
@@ -759,13 +761,13 @@ sprintf(s, "%d\n", dbg);
   }
   */
   
-  void CoordResize(std::vector<MQCoordinate> &coord, double uScale, double vScale, std::vector<MQCoordinate> &ret)
+  void CoordResize(std::vector<MyCoordinate> &coord, double uScale, double vScale, std::vector<MyCoordinate> &ret)
   {
     int num = coord.size();
     for(int i=0;i<num;i++)
     {
-      MQCoordinate &c = coord[i];
-      ret.push_back(MQCoordinate(c.u * uScale, c.v * vScale));
+      MyCoordinate &c = coord[i];
+      ret.push_back(MyCoordinate(c.u * uScale, c.v * vScale));
     }
   }
   
@@ -785,13 +787,13 @@ sprintf(s, "%d\n", dbg);
     OutputDebugStringA("\n");
   }
   */
-  void FlipShiftY(std::vector<MQCoordinate> &coordTri, float shiftY, std::vector<MQCoordinate> &ret)
+  void FlipShiftY(std::vector<MyCoordinate> &coordTri, float shiftY, std::vector<MyCoordinate> &ret)
   {
     int num = coordTri.size();
     for(int i=0;i<num;i++)
     {
-      MQCoordinate &c = coordTri[i];
-      ret.push_back(MQCoordinate(c.u, -c.v+shiftY));
+      MyCoordinate &c = coordTri[i];
+      ret.push_back(MyCoordinate(c.u, -c.v+shiftY));
     }
   }
   
@@ -816,9 +818,9 @@ sprintf(s, "%d\n", dbg);
     return M;
   }
 
-  void OutputToMetaseqFast_LineTri(MQObject mqoOut, CacheTexInfo &info, std::vector<MQPoint> &ptsTri, std::vector<MQCoordinate> &coordTri, int modeZScale, double zscale)
+  void OutputToMetaseqFast_LineTri(MyObject mqoOut, CacheTexInfo &info, std::vector<MyPoint> &ptsTri, std::vector<MyCoordinate> &coordTri, int modeZScale, double zscale)
   {
-    MQObject mqoTex = info.o;
+    MyObject mqoTex = &(info.o);
     //TriangulateObj(doc, mqoTex);MQTexManagerに移動
     
     std::vector<Point2> uvRepeatClip;
@@ -826,9 +828,9 @@ sprintf(s, "%d\n", dbg);
     MakeTexRepeatList(coordTri, info, uvRepeatClip, uvRepeatThru);
     int numRepeatClip = uvRepeatClip.size();
     int numRepeatThru = uvRepeatThru.size();
-    std::vector<MQCoordinate> coordTriScale;
+    std::vector<MyCoordinate> coordTriScale;
     CoordResize(coordTri, info.w, info.h, coordTriScale);
-    std::vector<MQCoordinate> coordTriScaleFlipShiftY;
+    std::vector<MyCoordinate> coordTriScaleFlipShiftY;
     FlipShiftY(coordTriScale, info.h, coordTriScaleFlipShiftY);
     Triangle2 ClipTri = _MakeClipTri(coordTriScaleFlipShiftY);
     //OutputDebugClipTri(ClipTri);
@@ -840,8 +842,8 @@ sprintf(s, "%d\n", dbg);
     {
       int numTexFV = mqoTex->GetFacePointCount(fiTex);
       if(numTexFV!=3)continue;
-      std::vector<MQPoint> ptsTex(numTexFV);
-      std::vector<MQCoordinate> coordTex(numTexFV);
+      std::vector<MyPoint> ptsTex(numTexFV);
+      std::vector<MyCoordinate> coordTex(numTexFV);
       GetPointAndCoord(mqoTex, fiTex, numTexFV, ptsTex, coordTex);
       
       int mqTexMatIdx = mqoTex->GetFaceMaterial(fiTex);
@@ -879,78 +881,34 @@ sprintf(s, "%d\n", dbg);
       {
         Point2 &_shiftUV = uvRepeatThru[rep];
         Point2 shiftUV = Point2((_shiftUV.x()), -(_shiftUV.y()));
-        std::vector<MQPoint> ptsTexShifted;
+        std::vector<MyPoint> ptsTexShifted;
         ShiftTri(ptsTex, shiftUV, ptsTexShifted);
         //OutputDebugStringA("thru!\n");
 
         _OutputPoly2Metaseq(mqoOut, ptsTexShifted, coordTex, invMat, mqTexMatIdx);
       }
-      /*
-      for(int rep=0;rep<numRepeatThru;rep++)
-      {
-        Point2 &_shiftUV = uvRepeatThru[rep];
-        Point2 shiftUV = Point2((_shiftUV.x()), -(_shiftUV.y()));
-        std::vector<MQPoint> ptsTexShifted;
-        ShiftTri(ptsTex, shiftUV, ptsTexShifted);
-        int idxtmp[4];
-        idxtmp[0] = mqoOut->AddVertex(MQPoint(shiftUV.x(), shiftUV.y(), 0));
-        idxtmp[1] = mqoOut->AddVertex(MQPoint(shiftUV.x()+info.w, shiftUV.y(), 0));
-        idxtmp[2] = mqoOut->AddVertex(MQPoint(shiftUV.x()+info.w, shiftUV.y()+info.h, 0));
-        idxtmp[3] = mqoOut->AddVertex(MQPoint(shiftUV.x(), shiftUV.y()+info.h, 0));
-          int fi = mqoOut->AddFace(4, idxtmp);
-        //OutputDebugStringA("thru!\n");
-
-        _OutputPoly2Metaseq(mqoOut, ptsTexShifted, coordTex, invMat, mqTexMatIdx);
-      }
-      
-      for(int rep=0;rep<numRepeatClip;rep++)
-      {
-        Point2 &_shiftUV = uvRepeatClip[rep];
-        Point2 shiftUV = Point2((_shiftUV.x()), -(_shiftUV.y()));
-        std::vector<MQPoint> ptsTexShifted;
-        ShiftTri(ptsTex, shiftUV, ptsTexShifted);
-        int idxtmp[4];
-        idxtmp[0] = mqoOut->AddVertex(MQPoint(shiftUV.x(), shiftUV.y(), 0));
-        idxtmp[1] = mqoOut->AddVertex(MQPoint(shiftUV.x()+info.w, shiftUV.y(), 0));
-        idxtmp[2] = mqoOut->AddVertex(MQPoint(shiftUV.x()+info.w, shiftUV.y()+info.h, 0));
-        idxtmp[3] = mqoOut->AddVertex(MQPoint(shiftUV.x(), shiftUV.y()+info.h, 0));
-          int fi = mqoOut->AddFace(4, idxtmp);
-        //OutputDebugStringA("thru!\n");
-
-        _OutputPoly2Metaseq(mqoOut, ptsTexShifted, coordTex, invMat, mqTexMatIdx);
-      }
-      */
       
       
       for(int rep=0;rep<numRepeatClip;rep++)
       {
         Point2 &_shiftUV = uvRepeatClip[rep];
         Point2 shiftUV = Point2((_shiftUV.x()), -(_shiftUV.y()));
-        std::vector<MQPoint> triShifted;
+        std::vector<MyPoint> triShifted;
         ShiftTri(ptsTex, shiftUV, triShifted);
-        std::vector<MQPoint> retPoly;
-        std::vector<MQCoordinate> retPolyCoord;
-        /*
-      {
-        int idxtmp[4];
-        idxtmp[0] = mqoOut->AddVertex(triShifted[0]);
-        idxtmp[1] = mqoOut->AddVertex(triShifted[1]);
-        idxtmp[2] = mqoOut->AddVertex(triShifted[2]);
-          mqoOut->AddFace(3, idxtmp);
-      }
-      */
+        std::vector<MyPoint> retPoly;
+        std::vector<MyCoordinate> retPolyCoord;
+        
         TriangleTriangleIntersect25(ClipTri, triShifted, coordTex, retPoly, retPolyCoord);
         if(retPoly.size()>=3)
         {
           _OutputPoly2Metaseq(mqoOut, retPoly, retPolyCoord, invMat, mqTexMatIdx);
-        //OutputDebugStringA("clip!\n");
         }
       }
       
     }
   }
 
-  void OutputToMetaseq_LineTri(MQObject o, cv::Mat &matUVCalc, bool bThresholdMennuki = true, transform3 *invMat = NULL, bool bInvFace = false, int mqMatIdx = -1, Vector3 *cliptri = NULL, Point2 *shift2d = NULL, double padding = 0.0)
+  void OutputToMetaseq_LineTri(MyObject o, cv::Mat &matUVCalc, bool bThresholdMennuki = true, transform3 *invMat = NULL, bool bInvFace = false, int mqMatIdx = -1, Vector3 *cliptri = NULL, Point2 *shift2d = NULL, double padding = 0.0)
   {
     bool bOutputAllFace = opt_edgeproc==3 || !bThresholdMennuki;
 
@@ -1035,7 +993,7 @@ sprintf(s, "%d\n", dbg);
     for (CDT::Finite_faces_iterator fit=cdt.finite_faces_begin(); fit!=cdt.finite_faces_end(); fit++)
     {
       int idx[6];
-      MQCoordinate newcoord[6];
+      MyCoordinate newcoord[6];
       CDT::Face_handle face = fit;
       Point2 &p = face->vertex(0)->point();
       Point2 &p2 = face->vertex(2)->point();
@@ -1055,16 +1013,16 @@ sprintf(s, "%d\n", dbg);
         {
           if(invMat==NULL)
           {
-            idx[0] = o->AddVertex(MQPoint(CGAL::to_double(p.x()), CGAL::to_double(p.y()), 0.0));
-            idx[bInvFace ? 2:1] = o->AddVertex(MQPoint(CGAL::to_double(p2.x()), CGAL::to_double(p2.y()), 0.0));
-            idx[bInvFace ? 1:2] = o->AddVertex(MQPoint(CGAL::to_double(p3.x()), CGAL::to_double(p3.y()), 0.0));
+            idx[0] = o->AddVertex(MyPoint(CGAL::to_double(p.x()), CGAL::to_double(p.y()), 0.0));
+            idx[bInvFace ? 2:1] = o->AddVertex(MyPoint(CGAL::to_double(p2.x()), CGAL::to_double(p2.y()), 0.0));
+            idx[bInvFace ? 1:2] = o->AddVertex(MyPoint(CGAL::to_double(p3.x()), CGAL::to_double(p3.y()), 0.0));
           } else {
             Point3 pz = invMat->transform(Point3(CGAL::to_double(p.x()), CGAL::to_double(p.y()), 0.0));
-            idx[0] = o->AddVertex(Point3ToMQPoint(pz));
+            idx[0] = o->AddVertex(Point3ToMyPoint(pz));
             pz = invMat->transform(Point3(CGAL::to_double(p2.x()), CGAL::to_double(p2.y()), 0.0));
-            idx[bInvFace ? 2:1] = o->AddVertex(Point3ToMQPoint(pz));
+            idx[bInvFace ? 2:1] = o->AddVertex(Point3ToMyPoint(pz));
             pz = invMat->transform(Point3(CGAL::to_double(p3.x()), CGAL::to_double(p3.y()), 0.0));
-            idx[bInvFace ? 1:2] = o->AddVertex(Point3ToMQPoint(pz));
+            idx[bInvFace ? 1:2] = o->AddVertex(Point3ToMyPoint(pz));
           }
           newcoord[0] = CalcUVByAffineMat(matUVCalc, p);
           newcoord[bInvFace ? 2:1] = CalcUVByAffineMat(matUVCalc, p2);
@@ -1082,7 +1040,7 @@ sprintf(s, "%d\n", dbg);
   }
 
 
-  void OutputToMetaseq_LineOnly(MQObject o, transform3 *invMat = NULL, Vector3 *cliptri = NULL, Point2 *shift2d = NULL, double padding = 0.0)
+  void OutputToMetaseq_LineOnly(MyObject o, transform3 *invMat = NULL, Vector3 *cliptri = NULL, Point2 *shift2d = NULL, double padding = 0.0)
   {
     int idx[2];
 
@@ -1115,9 +1073,9 @@ sprintf(s, "%d\n", dbg);
         const Point2 &s = l->source();
         const Point2 &t = l->target();
         Point3 pz = invMat->transform(Point3(CGAL::to_double(s.x())+shift2d->x(), CGAL::to_double(s.y())+shift2d->y(), 0.0));
-        idx[0] = o->AddVertex(Point3ToMQPoint(pz));
+        idx[0] = o->AddVertex(Point3ToMyPoint(pz));
         pz = invMat->transform(Point3(CGAL::to_double(t.x())+shift2d->x(), CGAL::to_double(t.y())+shift2d->y(), 0.0));
-        idx[1] = o->AddVertex(Point3ToMQPoint(pz));
+        idx[1] = o->AddVertex(Point3ToMyPoint(pz));
         o->AddFace(2, idx);
       } else {
         const Point2 &s = l->source();
@@ -1126,15 +1084,15 @@ sprintf(s, "%d\n", dbg);
         {
           float x2 = CGAL::to_double(s.x());
           float y2 = CGAL::to_double(s.y());
-          idx[0] = o->AddVertex(MQPoint(x2, y2, 0.0));
+          idx[0] = o->AddVertex(MyPoint(x2, y2, 0.0));
           x2 = CGAL::to_double(t.x());
           y2 = CGAL::to_double(t.y());
-          idx[1] = o->AddVertex(MQPoint(x2, y2, 0.0));
+          idx[1] = o->AddVertex(MyPoint(x2, y2, 0.0));
         } else {
           Point3 pz = invMat->transform(Point3(CGAL::to_double(s.x()), CGAL::to_double(s.y()), 0.0));
-          idx[0] = o->AddVertex(Point3ToMQPoint(pz));
+          idx[0] = o->AddVertex(Point3ToMyPoint(pz));
           pz = invMat->transform(Point3(CGAL::to_double(t.x()), CGAL::to_double(t.y()), 0.0));
-          idx[1] = o->AddVertex(Point3ToMQPoint(pz));
+          idx[1] = o->AddVertex(Point3ToMyPoint(pz));
         }
         o->AddFace(2, idx);
       }
@@ -1143,10 +1101,10 @@ sprintf(s, "%d\n", dbg);
 
 private:
 
-  void _Output2Metaseq(MQObject o, const Polygon2_K2 &P, transform3 &invMat, int mqMatIdx, cv::Mat &matUVCalc)
+  void _Output2Metaseq(MyObject o, const Polygon2_K2 &P, transform3 &invMat, int mqMatIdx, cv::Mat &matUVCalc)
   {
     int idx[6];
-    MQCoordinate newcoord[6];
+    MyCoordinate newcoord[6];
     int numIdx=0;
     int numOutVertex = P.size();
 
@@ -1157,7 +1115,7 @@ private:
       const Point2_K2 &px = P[m];
       newcoord[numIdx] = CalcUVByAffineMat_K2(matUVCalc, px);
       Point3 vz = invMat.transform(Point3(CGAL::to_double(px.x()), CGAL::to_double(px.y()), 0.0));
-      idx[numIdx] = o->AddVertex(Point3ToMQPoint(vz));
+      idx[numIdx] = o->AddVertex(Point3ToMyPoint(vz));
       numIdx++;
     }
     if(numIdx>0)
@@ -1167,7 +1125,7 @@ private:
       if(mqMatIdx!=-1)o->SetFaceMaterial(fi, mqMatIdx);
     }
   }
-  Eigen::Matrix<double, 4, 1> MQPoint2EigenMat41(MQPoint p)
+  Eigen::Matrix<double, 4, 1> MyPoint2EigenMat41(MyPoint p)
   {
     Eigen::Matrix<double, 4, 1> ret;
     ret << p.x,
@@ -1177,24 +1135,24 @@ private:
     return ret;
   }
   
-  void OutputDebugStringA_MQP(MQPoint p)
+  void OutputDebugStringA_MQP(MyPoint p)
   {
     char buf[1025];
     sprintf(buf, "  (%f, %f, %f)\n", p.x, p.y, p.z);
-    OutputDebugStringA(buf);
+    MyOutputDebugStringA(buf);
   }
   
-  MQPoint transformMQP(MQPoint p, Eigen::Matrix<double, 3, 4> &invMat)
+  MyPoint transformMQP(MyPoint p, Eigen::Matrix<double, 3, 4> &invMat)
   {
     //OutputDebugStringA("transformMQP:\n");
     //OutputDebugStringA_MQP(p);
-    Eigen::Matrix<double, 4, 1> p2 = MQPoint2EigenMat41(p);
+    Eigen::Matrix<double, 4, 1> p2 = MyPoint2EigenMat41(p);
     Eigen::Matrix<double, 3, 1> X = invMat * p2;
-    MQPoint ret(X(0,0), X(1,0), X(2,0));
+    MyPoint ret(X(0,0), X(1,0), X(2,0));
     //OutputDebugStringA_MQP(ret);
     return ret;
   }
-  void _OutputPoly2Metaseq(MQObject o, std::vector<MQPoint> &poly, std::vector<MQCoordinate> &coord, Eigen::Matrix<double, 3, 4> &invMat, int mqMatIdx)
+  void _OutputPoly2Metaseq(MyObject o, std::vector<MyPoint> &poly, std::vector<MyCoordinate> &coord, Eigen::Matrix<double, 3, 4> &invMat, int mqMatIdx)
   {
     int idx[6];
     int numIdx=0;
@@ -1205,8 +1163,8 @@ private:
     //for(int m=numOutVertex-1;m>=0;m--)
     for(int m=0;m<numOutVertex;m++)
     {
-      MQPoint &px = poly[m];
-      MQPoint newp = transformMQP(px, invMat);
+      MyPoint &px = poly[m];
+      MyPoint newp = transformMQP(px, invMat);
       idx[numIdx] = o->AddVertex(newp);
       numIdx++;
     }
@@ -1220,7 +1178,7 @@ private:
   void _Output2Vector(std::vector<MyPolygon> &polygons, const Polygon2_K2 &P, transform3 &invMat, int mqMatIdx, cv::Mat &matUVCalc)
   {
     int idx[6];
-    MQCoordinate newcoord[6];
+    MyCoordinate newcoord[6];
     int numIdx=0;
     int numOutVertex = P.size();
     MyPolygon polygon;
@@ -1355,7 +1313,7 @@ private:
 
 
 
-  void _Triangulation(std::vector<Segment2> &otr2_line, std::vector<Point2> &otr2_v, cv::Mat &chkFace, bool bOutputAllFace, int thresholdMennuki, std::vector<std::vector<Point2>> &triArr)
+  void _Triangulation(std::vector<Segment2> &otr2_line, std::vector<Point2> &otr2_v, cv::Mat &chkFace, bool bOutputAllFace, int thresholdMennuki, std::vector<std::vector<Point2> > &triArr)
   {
     CDT cdt;
     cdt.insert(otr2_v.begin(), otr2_v.end());
@@ -1414,7 +1372,10 @@ private:
 
     if(triPoly.area()!=0.0)
     {
-      if(triPoly.is_clockwise_oriented())triPoly.reverse_orientation();
+      if(triPoly.is_clockwise_oriented())
+      {
+        triPoly.reverse_orientation();
+      }
       Pwh_list_2 intR;
       CGAL::intersection(ClipTri, triPoly, std::back_inserter(intR));
   
@@ -1441,7 +1402,7 @@ private:
     return _TriangleIntersectionAfter2(p, p2, p3, ClipTri, shift2d);
   }
   
-  Triangle2 _MakeClipTri(std::vector<MQCoordinate> &coordTri)
+  Triangle2 _MakeClipTri(std::vector<MyCoordinate> &coordTri)
   {
     Triangle2 ret;
     if(coordTri.size()!=3)return ret;
@@ -1449,12 +1410,12 @@ private:
     
     for(int i=0;i<3;i++)
     {
-      MQCoordinate &c = coordTri[i];
+      MyCoordinate &c = coordTri[i];
       p.push_back(Point2(c.u, c.v));
     }
-    MQCoordinate &c0 = coordTri[0];
-    MQCoordinate &c1 = coordTri[1];
-    MQCoordinate &c2 = coordTri[2];
+    MyCoordinate &c0 = coordTri[0];
+    MyCoordinate &c1 = coordTri[1];
+    MyCoordinate &c2 = coordTri[2];
     Point2 p0(c0.u, c0.v);
     Point2 p1(c1.u, c1.v);
     Point2 p2(c2.u, c2.v);
@@ -1467,18 +1428,18 @@ private:
     }
     return ret;
   }
-  Triangle2 _MakeClipTri(std::vector<MQPoint> &tri)
+  Triangle2 _MakeClipTri(std::vector<MyPoint> &tri)
   {
     Triangle2 ret;
     if(tri.size()!=3)return ret;
     Polygon2 poly;//回転方向判定用
-    MQPoint &pt0 = tri[0];
-    MQPoint &pt1 = tri[1];
-    MQPoint &pt2 = tri[2];
+    MyPoint &pt0 = tri[0];
+    MyPoint &pt1 = tri[1];
+    MyPoint &pt2 = tri[2];
     
     for(int i=0;i<3;i++)
     {
-      MQPoint &pt = tri[i];
+      MyPoint &pt = tri[i];
       poly.push_back(Point2(pt.x, pt.y));
     }
     if(poly.area()==0.0)
@@ -1599,25 +1560,25 @@ private:
     //return true;
     return _isDrawFace(points, chkFace, thresholdMennuki);
   }
-  MQCoordinate CalcUVByAffineMat_K2(cv::Mat &matUVCalc, const Point2_K2 &p)
+  MyCoordinate CalcUVByAffineMat_K2(cv::Mat &matUVCalc, const Point2_K2 &p)
   {
-    MQCoordinate ret;
+    MyCoordinate ret;
     cv::Mat pMat(3, 1, CV_64F);
     pMat.at<double>(0,0) = CGAL::to_double(p.x());
     pMat.at<double>(1,0) = CGAL::to_double(p.y());
     pMat.at<double>(2,0) = 1.0;
     cv::Mat result = matUVCalc * pMat;
-    return MQCoordinate(result.at<double>(0,0), result.at<double>(1,0));
+    return MyCoordinate(result.at<double>(0,0), result.at<double>(1,0));
   }
-  MQCoordinate CalcUVByAffineMat(cv::Mat &matUVCalc, const Point2 &p)
+  MyCoordinate CalcUVByAffineMat(cv::Mat &matUVCalc, const Point2 &p)
   {
-    MQCoordinate ret;
+    MyCoordinate ret;
     cv::Mat pMat(3, 1, CV_64F);
     pMat.at<double>(0,0) = CGAL::to_double(p.x());
     pMat.at<double>(1,0) = CGAL::to_double(p.y());
     pMat.at<double>(2,0) = 1.0;
     cv::Mat result = matUVCalc * pMat;
-    return MQCoordinate(result.at<double>(0,0), result.at<double>(1,0));
+    return MyCoordinate(result.at<double>(0,0), result.at<double>(1,0));
   }
 
 };

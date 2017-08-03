@@ -2,10 +2,10 @@
 #ifndef _TAMAMQLIB_
 #define _TAMAMQLIB_
 
-#include "MQPlugin.h"
-#include "MQWidget.h"
+//#include "MQPlugin.h"
+//#include "MQWidget.h"
 
-void GetPointAndCoord(MQObject o, int fi, int numFV, MQPoint *pts, MQCoordinate *coord = NULL)
+void GetPointAndCoord(MyObject o, int fi, int numFV, MyPoint *pts, MyCoordinate *coord = NULL)
 {
   //int numFV = o->GetFacePointCount(fi);
   std::vector<int> vidx2(numFV);
@@ -20,26 +20,17 @@ void GetPointAndCoord(MQObject o, int fi, int numFV, MQPoint *pts, MQCoordinate 
     }
   }
 }
-void GetPoint(MQObject o, int fi, int numFV, std::vector<MQPoint> &pts)
+void GetPoint(MyObject o, int fi, int numFV, std::vector<MyPoint> &pts)
 {
   GetPointAndCoord(o, fi, numFV, &(*pts.begin()), NULL);
 }
-void GetPointAndCoord(MQObject o, int fi, int numFV, std::vector<MQPoint> &pts, std::vector<MQCoordinate> &coord)
+void GetPointAndCoord(MyObject o, int fi, int numFV, std::vector<MyPoint> &pts, std::vector<MyCoordinate> &coord)
 {
   GetPointAndCoord(o, fi, numFV, &(*pts.begin()), &(*coord.begin()));
 }
-void GetPointAndCoord(MQObject o, int fi, int numFV, int *vidx, MQPoint *pts, MQCoordinate *coord = NULL)
+
+void GetPointAndCoord(MyObject o, int fi, int numFV, int *vidx, MyPoint *pts, MyCoordinate *coord = NULL)
 {
-  /*
-  std::vector<int> vidx2;
-  int *_vidx = vidx;
-  if(_vidx==NULL)
-  {
-    int numFV = o->GetFacePointCount(fi);
-    vidx2.resize(numFV);
-    _vidx = &(*vidx2.begin())
-  }
-  */
   o->GetFacePointArray(fi, vidx);
   if(coord!=NULL)o->GetFaceCoordinateArray(fi, coord);
   if(pts!=NULL)
@@ -50,19 +41,19 @@ void GetPointAndCoord(MQObject o, int fi, int numFV, int *vidx, MQPoint *pts, MQ
     }
   }
 }
-void GetPoint(MQObject o, int fi, int numFV, std::vector<int> &vidx, std::vector<MQPoint> &pts)
+void GetPoint(MyObject o, int fi, int numFV, std::vector<int> &vidx, std::vector<MyPoint> &pts)
 {
   GetPointAndCoord(o, fi, numFV, &(*vidx.begin()), &(*pts.begin()), NULL);
 }
-void GetPointAndCoord(MQObject o, int fi, int numFV, std::vector<int> &vidx, std::vector<MQPoint> &pts, std::vector<MQCoordinate> &coord)
+void GetPointAndCoord(MyObject o, int fi, int numFV, std::vector<int> &vidx, std::vector<MyPoint> &pts, std::vector<MyCoordinate> &coord)
 {
   GetPointAndCoord(o, fi, numFV, &(*vidx.begin()), &(*pts.begin()), &(*coord.begin()));
 }
-void GetPointAndCoord(MQObject o, int fi, int numFV, int *vidx, std::vector<MQPoint> &pts, std::vector<MQCoordinate> &coord)
+void GetPointAndCoord(MyObject o, int fi, int numFV, int *vidx, std::vector<MyPoint> &pts, std::vector<MyCoordinate> &coord)
 {
   GetPointAndCoord(o, fi, numFV, vidx, &(*pts.begin()), &(*coord.begin()));
 }
-
+/*
 bool _Triangulate(MQDocument doc, int fi, MQObject o, bool bSelectNew = true, bool bDeleteOldFace = true)
 {
   if(o==NULL)return false;
@@ -151,9 +142,9 @@ void Triangulate1Poly(MQDocument doc, int oi, int fi, bool bSelectNew = true, bo
   
   _Triangulate(doc, fi, o, bSelectNew, bDeleteOldFace);
 }
+*/
 
-
-
+/*
 MQObject _FindMQObjectByName(MQDocument doc, char *name, int *_oi = NULL)
 {
   char tmp[_MAX_PATH*2+2];
@@ -190,7 +181,7 @@ MQObject _FindChildMQObjectByName(MQDocument doc, char *name, MQObject oParent, 
   return NULL;
 }
 
-
+*/
 
 
 

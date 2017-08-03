@@ -5,7 +5,7 @@ class CacheTexInfo
 public:
   std::string fullpath;
   cv::Mat matRaster;
-  MQObject o;
+  _MyObject o;
   float minx, miny, maxx, maxy;
   float w, h;
 };

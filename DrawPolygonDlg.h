@@ -125,7 +125,7 @@ DrawPolygonDialog::DrawPolygonDialog(MQWindowBase& parent) : MQDialog(parent)
   lbl_combo_zscale = CreateLabel(paramFrame, L"立体テクスチャのZ伸縮");
   combo_zscale = CreateComboBox(paramFrame);
   combo_zscale->AddItem(L"伸縮しない");
-  combo_zscale->AddItem(L"UV面積比でZ伸縮");
+  combo_zscale->AddItem(L"自動");
   combo_zscale->AddItem(L"固定値");
   combo_zscale->SetCurrentIndex(1);
   combo_zscale->AddChangedEvent(this, &DrawPolygonDialog::uiChanged);
@@ -147,7 +147,7 @@ DrawPolygonDialog::DrawPolygonDialog(MQWindowBase& parent) : MQDialog(parent)
   CreateLabel(paramFrame, L"ベクトル化");
   combo_vectorconv = CreateComboBox(paramFrame);
   combo_vectorconv->AddItem(L"モノクロ値を重みとして使用");
-  combo_vectorconv->AddItem(L"2値化（重み無し））");
+  combo_vectorconv->AddItem(L"2値化（重み無し）");
   combo_vectorconv->SetCurrentIndex(0);
   combo_vectorconv->AddChangedEvent(this, &DrawPolygonDialog::uiChanged);
   

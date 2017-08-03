@@ -24,7 +24,7 @@ public:
     matid = _p.matid;
   }
   std::vector<Point3> vert;
-  std::vector<MQCoordinate> coord;
+  std::vector<MyCoordinate> coord;
   int matid;
 };
 
