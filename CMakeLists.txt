@@ -14,7 +14,8 @@ include( ${CGAL_USE_FILE} )
 
 find_package( OpenCV REQUIRED )
 
-find_package(Boost 1.64.0 COMPONENTS program_options REQUIRED)
+add_definitions( -DBOOST_ALL_NO_LIB )
+find_package(Boost 1.64.0 COMPONENTS program_options system thread REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIR})
 

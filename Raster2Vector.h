@@ -636,7 +636,8 @@ sprintf(s, "%d\n", dbg);
   
   bool TriangleTriangleIntersect25(Triangle2 &ClipTri, std::vector<MyPoint> &tri, std::vector<MyCoordinate> &coord, std::vector<MyPoint> &ret, std::vector<MyCoordinate> &retCoord)
   {
-    Triangle2 Tri2 = _MakeClipTri(tri);
+    bool bReverse = false;
+    Triangle2 Tri2 = _MakeClipTri(tri, &bReverse);
     //if(ClipTri.area()==0.0)return false; OutputToMetaseqFast_LineTri‚ÉˆÚ“®
     if(Tri2.area()==0.0)
     {
@@ -659,6 +660,11 @@ sprintf(s, "%d\n", dbg);
           MyCoordinate newCoord = CalcNewUV(newMqp, matPtToUV);
           retCoord.push_back(newCoord);
         }
+        if(!bReverse)
+        {
+          std::reverse(ret.begin(), ret.end());
+          std::reverse(retCoord.begin(), retCoord.end());
+        }
         return true;
       } else if(std::vector<Point2> *p2 = boost::get<std::vector<Point2> >(&*result))
       {
@@ -672,6 +678,11 @@ sprintf(s, "%d\n", dbg);
           ret.push_back(newMqp);
           MyCoordinate newCoord = CalcNewUV(newMqp, matPtToUV);
           retCoord.push_back(newCoord);
+        }
+        if(!bReverse)
+        {
+          std::reverse(ret.begin(), ret.end());
+          std::reverse(retCoord.begin(), retCoord.end());
         }
         return true;
       }
@@ -1428,7 +1439,7 @@ private:
     }
     return ret;
   }
-  Triangle2 _MakeClipTri(std::vector<MyPoint> &tri)
+  Triangle2 _MakeClipTri(std::vector<MyPoint> &tri, bool *bReverse = NULL)
   {
     Triangle2 ret;
     if(tri.size()!=3)return ret;
@@ -1453,8 +1464,10 @@ private:
     if(poly.is_clockwise_oriented())
     {
       ret = Triangle2(p2, p1, p0);
+      if(bReverse!=NULL)*bReverse = true;
     } else {
       ret = Triangle2(p0, p1, p2);
+      if(bReverse!=NULL)*bReverse = false;
     }
     return ret;
   }
