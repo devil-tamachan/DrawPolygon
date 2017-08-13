@@ -112,6 +112,22 @@ public:
       vidx[i] = fidx[i];
     }
   }
+  void GetFacePointArray(int fi, std::vector<int> &vidx)
+  {
+    if(fi>=faces.size())return;
+    std::vector<int> &fidx = faces[fi];
+    vidx = fidx;
+  }
+  void GetFaceMyPointArray(int fi, std::vector<MyPoint> &vp)
+  {
+    if(fi>=faces.size())return;
+    std::vector<int> &fidx = faces[fi];
+    int numV = fidx.size();
+    for(int vi=0;vi<numV;vi++)
+    {
+      vp.push_back(GetVertex(fidx[vi]));
+    }
+  }
   void GetFaceCoordinateArray(int fi, MyCoordinate *_coords)
   {
     if(fi>=coords.size())return;
@@ -121,6 +137,12 @@ public:
     {
       _coords[i] = fc[i];
     }
+  }
+  void GetFaceCoordinateArray(int fi, std::vector<MyCoordinate> &_coords)
+  {
+    if(fi>=coords.size())return;
+    std::vector<MyCoordinate> &fc = coords[fi];
+    _coords = fc;
   }
   
   void SetFaceCoordinateArray(int fi, MyCoordinate *c)
@@ -168,6 +190,22 @@ public:
   std::vector<std::vector<int> > faces;
   std::vector<int> materials;
   
+  bool write(const char *path)
+  {
+    FILE *fp = fopen(path, "wb");
+    if(fp==NULL)return false;
+    bool bRet = write(fp);
+    fclose(fp);
+    return bRet;
+  }
+  bool write(const wchar_t *path)
+  {
+    FILE *fp = _wfopen(path, L"wb");
+    if(fp==NULL)return false;
+    bool bRet = write(fp);
+    fclose(fp);
+    return bRet;
+  }
   bool write(FILE *fp)
   {
     if(coords.size() != faces.size() || materials.size() != faces.size())return false;
@@ -209,16 +247,16 @@ public:
       {
         n = 0;
         if(fwrite(&n, 4, 1, fp)!=1)return false;
-        continue;
-      }
-      n = c.size();
-      if(fwrite(&n, 4, 1, fp)!=1)return false;
-      
-      for(int k=0;k<n;k++)
-      {
-        MyCoordinate &uv = c[k];
-        if(fwrite(&(uv.u), sizeof(float), 1, fp)!=1)return false;
-        if(fwrite(&(uv.v), sizeof(float), 1, fp)!=1)return false;
+      } else {
+        n = c.size();
+        if(fwrite(&n, 4, 1, fp)!=1)return false;
+        
+        for(int k=0;k<n;k++)
+        {
+          MyCoordinate &uv = c[k];
+          if(fwrite(&(uv.u), sizeof(float), 1, fp)!=1)return false;
+          if(fwrite(&(uv.v), sizeof(float), 1, fp)!=1)return false;
+        }
       }
       int matid = materials[fi];
       if(fwrite(&matid, 4, 1, fp)!=1)return false;
@@ -229,6 +267,14 @@ public:
   bool read(const char *path)
   {
     FILE *fp = fopen(path, "rb");
+    if(fp==NULL)return false;
+    bool bRet = read(fp);
+    fclose(fp);
+    return bRet;
+  }
+  bool read(const wchar_t *path)
+  {
+    FILE *fp = _wfopen(path, L"rb");
     if(fp==NULL)return false;
     bool bRet = read(fp);
     fclose(fp);
@@ -275,14 +321,28 @@ public:
       
       unsigned int numCoords = 0;
       if(fread(&numCoords, 4, 1, fp)!=1)return false;
-      if(numVI!=numCoords)return false;
-      
-      for(int k=0;k<numCoords;k++)
+      if(numVI==numCoords)
       {
-        MyCoordinate uv;
-        if(fread(&(uv.u), sizeof(float), 1, fp)!=1)return false;
-        if(fread(&(uv.v), sizeof(float), 1, fp)!=1)return false;
-        c.push_back(uv);
+        for(int k=0;k<numCoords;k++)
+        {
+          MyCoordinate uv;
+          if(fread(&(uv.u), sizeof(float), 1, fp)!=1)return false;
+          if(fread(&(uv.v), sizeof(float), 1, fp)!=1)return false;
+          c.push_back(uv);
+        }
+      } else {
+        for(int k=0;k<numCoords;k++)
+        {
+          MyCoordinate uv;
+          if(fread(&(uv.u), sizeof(float), 1, fp)!=1)return false;
+          if(fread(&(uv.v), sizeof(float), 1, fp)!=1)return false;
+          //c.push_back(uv);ŽÌ‚Ä‚é
+        }
+        for(int k=0;k<numVI;k++)
+        {
+          MyCoordinate uv(0.0f, 0.0f);
+          c.push_back(uv);
+        }
       }
       coords.push_back(c);
       
