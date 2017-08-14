@@ -78,7 +78,7 @@ MyPoint Point2_MyPoint(Point2 &pt, Eigen::Matrix<double, 1, 3> &matXYToZ)
   return MyPoint(pt.x(), pt.y(), Z(0,0));
 }
 
-#define DEBUGCGALINTERSECT
+//#define DEBUGCGALINTERSECT
 
 class CRaster2Vector
 {
